@@ -1,0 +1,104 @@
+\NeedsTeXFormat{LaTeX2e}[1994/06/01]
+\ProvidesPackage{microalg}[2017/01/31]
+
+% Based on this question :
+% http://tex.stackexchange.com/questions/235740/how-can-i-color-parentheses-depending-on-the-nesting-level-like-emacs-rainbow
+
+\RequirePackage{listings}
+\RequirePackage{xcolor}
+
+\definecolor{color0}{RGB}{255, 170, 187}
+\definecolor{color1}{RGB}{255, 221, 187}
+\definecolor{color2}{RGB}{255, 255, 187}
+\definecolor{color3}{RGB}{221, 255, 187}
+\definecolor{color4}{RGB}{204, 238, 255}
+\definecolor{color5}{RGB}{221, 204, 255}
+\definecolor{color6}{RGB}{187, 187, 238}
+
+\lstdefinelanguage{microalg}{
+  morekeywords = {deffunction, deftemplate, defrule, deffacts, run,
+    clear, reset, facts, agenda, nil, initial-fact, assert, retract,
+    watch, ppdefrule, unwatch, crlf},
+  sensitive        = true,
+  morecomment      = [l]{;},
+  morestring       = [b]",
+  basicstyle       = \ttfamily\small,
+  numbers          = left,
+  numberstyle      = \tiny,
+  showstringspaces = false,
+}
+
+% egreg's modulo macro (see http://tex.stackexchange.com/a/34449/21891)
+\def\truncdiv#1#2{((#1-(#2-1)/2)/#2)}
+\def\moduloop#1#2{(#1-\truncdiv{#1}{#2}*#2)}
+\def\modulo#1#2{\number\numexpr\moduloop{#1}{#2}\relax}
+
+
+\makeatletter
+
+% a TeX counter to keep track of the nesting level
+\newcount\netParensCount@microalg
+
+% Modify how ( and ) get typeset depending on the value of the counter
+% (Based on Ulrike Fischer's approach to modifying characters in listings;
+% see http://tex.stackexchange.com/a/231927/21891)
+\lst@CCPutMacro
+\lst@ProcessOther{`(}{{%
+  \ifnum\lst@mode=\lst@Pmode\relax%
+    \rainbow@microalg{(}%
+    \global\advance\netParensCount@microalg by \@ne%
+  \else
+    (%
+  \fi
+}}%
+\lst@ProcessOther{`)}{{%
+  \ifnum\lst@mode=\lst@Pmode\relax%
+    \global\advance\netParensCount@microalg by \m@ne%
+    \rainbow@microalg{)}%
+  \else
+    )%
+  \fi
+}}%
+\@empty\z@\@empty
+
+% Color its argument based on the value of the \netParensCount@microalg counter
+% (modulo 7)
+\newcommand\rainbow@microalg[1]{%
+  \ifcase\modulo\netParensCount@microalg 7\relax%
+    \colorbox{color0}{\makebox[0em]{#1}}%
+  \or
+    \colorbox{color1}{\makebox[0em]{#1}}%
+  \or
+    \colorbox{color2}{\makebox[0em]{#1}}%
+  \or
+    \colorbox{color3}{\makebox[0em]{#1}}%
+  \or
+    \colorbox{color4}{\makebox[0em]{#1}}%
+  \or
+    \colorbox{color5}{\makebox[0em]{#1}}%
+  \else
+    \colorbox{color6}{\makebox[0em]{#1}}%
+  \fi
+}
+
+% Alternatively, you could simplify the definition of \rainbow@microalg to...
+% \newcommand\rainbow@microalg[1]{%
+%   \textcolor{color\modulo\netParensCount@microalg 7}{#1}%
+% }
+% ... but this assumes that the colours have names of the form color<i>,
+% where <i> is a positive integer
+
+% reset the counter at the beginning of each listing
+% (just in case there were unmatched parentheses in a previous listing)
+\lst@AddToHook{PreInit}{%
+  \global\netParensCount@microalg 0\relax%
+}
+
+\makeatother
+
+
+\lstnewenvironment{microalg}
+  {\lstset{language=microalg}}
+  {}
+
+\endinput
